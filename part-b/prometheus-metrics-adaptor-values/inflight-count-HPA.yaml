@@ -1,0 +1,22 @@
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: webhook-app
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: webhook-app
+  # autoscale between 1 and 10 replicas
+  minReplicas: 1
+  maxReplicas: 7
+  metrics:
+  # use a "Pods" metric, which takes the average of the
+  # given metric across all pods controlled by the autoscaling target
+  - type: Pods
+    pods:
+      metric:
+        name: inflight_count
+      target:
+        type: AverageValue
+        averageValue: 3
