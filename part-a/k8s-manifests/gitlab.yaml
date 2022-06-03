@@ -1,0 +1,157 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: gitlab
+spec:
+  finalizers:
+  - kubernetes
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: gitlab-config-pvc
+  namespace: gitlab
+spec:
+  storageClassName: longhorn
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: gitlab-logs-pvc
+  namespace: gitlab
+spec:
+  storageClassName: longhorn
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: gitlab-data-pvc
+  namespace: gitlab
+spec:
+  storageClassName: longhorn
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: gitlab-runner-config-pvc
+  namespace: gitlab
+spec:
+  storageClassName: longhorn
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: gitlab-runner-data-pvc
+  namespace: gitlab
+spec:
+  storageClassName: longhorn
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: apps/v1 
+kind: Deployment
+metadata:
+  name: gitlab 
+  namespace: gitlab
+spec:
+  selector:
+    matchLabels:
+      app: gitlab
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: gitlab
+    spec:
+      volumes:
+      - name: gitlab-config-storage
+        persistentVolumeClaim:
+           claimName: gitlab-config-pvc
+      - name: gitlab-logs-storage
+        persistentVolumeClaim:
+           claimName: gitlab-logs-pvc
+      - name: gitlab-data-storage
+        persistentVolumeClaim:
+           claimName: gitlab-data-pvc
+      - name: gitlab-runner-config-storage
+        persistentVolumeClaim:
+           claimName: gitlab-runner-config-pvc
+      - name: gitlab-runner-data-storage
+        persistentVolumeClaim:
+           claimName: gitlab-runner-data-pvc
+      containers:
+      - name: gitlab 
+        image: gitlab/gitlab-ce:14.7.0-ce.0
+#        imagePullPolicy: Always
+#        securityContext:
+#          privileged: false
+#        env:
+#        - name: GITLAB_OMNIBUS_CONFIG
+#          value: "nginx['enable'] = true; nginx['client_max_body_size'] = '500m'; nginx['redirect_http_to_https'] = true; nginx['redirect_http_to_https_port'] = 80; nginx['listen_addresses'] = ['0.0.0.0']; nginx['listen_https'] = true; nginx['ssl_certificate'] = '/etc/gitlab/ssl/ssl-gitlab.crt'; nginx['ssl_certificate_key'] = '/etc/gitlab/ssl/ssl-gitlab.key'; registry_external_url ''; registry_nginx['enable'] = true; registry_nginx['listen_port'] = ''; registry_nginx['ssl_certificate'] = '/etc/gitlab/ssl/ssl-registry.crt'; registry_nginx['ssl_certificate_key'] = '/etc/gitlab/ssl/ssl-registry.key'; gitlab_pages['enable'] = ''; gitlab_rails['pages_host'] = ''; pages_external_url ''; gitlab_pages['external_http'] = '0.0.0.0:448'; gitlab_pages['inplace_chroot'] = 'true'; pages_nginx['enable'] = ''; pages_nginx['listen_port'] = ''; pages_nginx['ssl_certificate'] = '/etc/gitlab/ssl/ssl-pages.crt'; pages_nginx['ssl_certificate_key'] = '/etc/gitlab/ssl/ssl-pages.key'; gitlab_pages['access_control'] = 'true';"
+#          value: "nginx['enable'] = true; nginx['client_max_body_size'] = '500m'; nginx['redirect_http_to_https'] = true; nginx['redirect_http_to_https_port'] = 80; external_url ''; nginx['listen_addresses'] = ['0.0.0.0']; nginx['listen_port'] = ''; nginx['listen_https'] = true; nginx['ssl_certificate'] = '/etc/gitlab/ssl/ssl-gitlab.crt'; nginx['ssl_certificate_key'] = '/etc/gitlab/ssl/ssl-gitlab.key'; registry_external_url ''; registry_nginx['enable'] = true; registry_nginx['listen_port'] = ''; registry_nginx['ssl_certificate'] = '/etc/gitlab/ssl/ssl-registry.crt'; registry_nginx['ssl_certificate_key'] = '/etc/gitlab/ssl/ssl-registry.key'; gitlab_pages['enable'] = ''; gitlab_rails['pages_host'] = ''; pages_external_url ''; gitlab_pages['external_http'] = '0.0.0.0:448'; gitlab_pages['inplace_chroot'] = 'true'; pages_nginx['enable'] = ''; pages_nginx['listen_port'] = ''; pages_nginx['ssl_certificate'] = '/etc/gitlab/ssl/ssl-pages.crt'; pages_nginx['ssl_certificate_key'] = '/etc/gitlab/ssl/ssl-pages.key'; gitlab_pages['access_control'] = 'true'; gitlab_rails['backup_keep_time'] = ;"
+#        - name: GITLAB_BACKUP_CRONTAB_LINE
+#          value: ''
+#        ports:
+#        - containerPort: 22 
+        volumeMounts:
+        - mountPath: "/etc/gitlab"
+          name: gitlab-config-storage
+        - mountPath: "/var/log/gitlab"
+          name: gitlab-logs-storage
+        - mountPath: "/var/opt/gitlab"
+          name: gitlab-data-storage
+        - mountPath: "/etc/gitlab-runner"
+          name: gitlab-runner-config-storage
+        - mountPath: "/var/opt/gitlab-runner"
+          name: gitlab-runner-data-storage
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: gitlab
+  name: gitlab
+  namespace: gitlab
+spec:
+  ports:
+  - name: port-1
+    port: 22
+    protocol: TCP
+    targetPort: 22
+    nodePort: 30001
+  - name: port-2
+    port: 80
+    protocol: TCP
+    targetPort: 80
+    nodePort: 30002
+  - name: port-3
+    port: 443
+    protocol: TCP
+    targetPort: 443
+    nodePort: 30003
+  selector:
+    app: gitlab
+  type: LoadBalancer
