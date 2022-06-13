@@ -1,0 +1,16 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  annotations:
+  creationTimestamp: "2022-03-05T20:50:57Z"
+  generation: 1
+  labels:
+    release: prometheus
+  name: webhook-app
+  namespace: gitlab
+spec:
+  endpoints:
+  - port: web
+  selector:
+    matchLabels:
+      app: webhook-app

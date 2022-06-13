@@ -28,8 +28,8 @@ customLabels: {}
 # Url to access prometheus
 prometheus:
   # Value is templated
-  url: http://192.168.1.240
-  port: 30303
+  url: http://192.168.1.224
+  port: 9090
   path: ""
 
 replicas: 1
